@@ -7,7 +7,7 @@
 // https://script.google.com/macros/s/AKfycb.../exec
 
 export const APPS_SCRIPT_URL =
-  'https://script.google.com/macros/s/AKfycbzekeTZhNcICLlPv1rw0GuFuQlJURJHuBufMNspbse0dlKZZZ-HfbkVsIdYBvBBffAq/exec';
+  'https://script.google.com/macros/s/AKfycbwsAO78IiD1DcFN1-wnnVR2KUJa5VkFYo6sRdnMLunTEeJbI0RqApEDxG70kpX49IDR/exec';
 
 export const APP_CONFIG = {
   nomeEmpresa: 'Minha Empresa',

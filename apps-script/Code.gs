@@ -21,11 +21,29 @@ const ABA_CONFIG = 'configuracoes';
 
 // ---- Ponto de entrada único (JSONP) ----
 function doGet(e) {
+  // Se você rodar "doGet" direto no editor (botão Executar), o Apps
+  // Script não te dá um "e" de verdade, porque doGet só existe pra
+  // responder requisições HTTP reais. Esse aviso evita o erro feio
+  // "Cannot read properties of undefined" e te lembra de testar
+  // pela URL publicada em vez de rodar aqui dentro.
+  if (!e || !e.parameter) {
+    return ContentService.createTextOutput(
+      'doGet não deve ser executado direto no editor. Implante como ' +
+      'App da Web (Implantar > Nova implantação) e teste pela URL ' +
+      'gerada, assim: SUA_URL/exec?acao=LISTAR_FUNCIONARIOS&callback=teste'
+    );
+  }
+
   const callback = e.parameter.callback;
   let resposta;
 
   try {
-    const acao = e.parameter.acao;
+    // Normaliza o parâmetro "acao" para minúsculas e sem espaços,
+    // porque alguns teclados de celular autocapitalizam a primeira
+    // letra depois do "?" na barra de endereço (ex: "Acao" em vez
+    // de "acao"), o que quebrava a comparação abaixo.
+    const acaoBruta = e.parameter.acao || e.parameter.Acao || e.parameter.ACAO || '';
+    const acao = String(acaoBruta).trim().toUpperCase();
     switch (acao) {
       case 'LISTAR_FUNCIONARIOS':
         resposta = listarFuncionarios();
@@ -46,10 +64,22 @@ function doGet(e) {
         resposta = loginAdmin(e.parameter);
         break;
       default:
-        resposta = { sucesso: false, erro: 'Ação desconhecida: ' + acao };
+        resposta = {
+          sucesso: false,
+          erro: 'Ação desconhecida: ' + acao,
+          parametrosRecebidos: e.parameter,
+        };
     }
   } catch (erro) {
     resposta = { sucesso: false, erro: String(erro) };
+  }
+
+  // Se testar a URL sem o parâmetro &callback=... (por exemplo, direto
+  // no navegador só pra conferir se o backend responde), devolve o
+  // JSON puro em vez de tentar montar um JSONP quebrado.
+  if (!callback) {
+    return ContentService.createTextOutput(JSON.stringify(resposta))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 
   const saida = callback + '(' + JSON.stringify(resposta) + ')';

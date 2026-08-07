@@ -5,5 +5,5 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/pontofacial/', // ajuste para o nome do seu repositório no GitHub Pages
+  base: '/pontofacial/', // nome real do repositório no GitHub Pages
 })

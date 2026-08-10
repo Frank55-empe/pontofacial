@@ -10,6 +10,8 @@ export function Login() {
   const [senha, setSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
+  const [diagnostico, setDiagnostico] = useState('');
+  const [diagnosticando, setDiagnosticando] = useState(false);
   const { entrar } = useAdminAuth();
   const navegar = useNavigate();
 
@@ -30,6 +32,53 @@ export function Login() {
     } finally {
       setCarregando(false);
     }
+  }
+
+  async function testarConexao() {
+    setDiagnosticando(true);
+    setDiagnostico('Testando...');
+    const linhas: string[] = [];
+
+    // Teste 1: fetch() simples, só pra ver se o navegador consegue
+    // alcançar o domínio do Apps Script.
+    try {
+      const inicio = Date.now();
+      await fetch(`${APPS_SCRIPT_URL}?acao=LISTAR_FUNCIONARIOS&callback=diag`, { mode: 'no-cors' });
+      linhas.push(`✅ fetch() alcançou o servidor (${Date.now() - inicio}ms)`);
+    } catch (err) {
+      linhas.push(`❌ fetch() falhou: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    // Teste 2: exatamente o mesmo método que o app usa de verdade (tag <script>)
+    try {
+      const resultadoScript = await new Promise<string>((resolve, reject) => {
+        const nomeCallback = `diagCallback_${Date.now()}`;
+        const timeout = setTimeout(() => {
+          delete (window as unknown as Record<string, unknown>)[nomeCallback];
+          tag.remove();
+          reject(new Error('tempo esgotado (10s) esperando o <script> carregar'));
+        }, 10000);
+        (window as unknown as Record<string, unknown>)[nomeCallback] = () => {
+          clearTimeout(timeout);
+          delete (window as unknown as Record<string, unknown>)[nomeCallback];
+          tag.remove();
+          resolve('respondeu com sucesso');
+        };
+        const tag = document.createElement('script');
+        tag.src = `${APPS_SCRIPT_URL}?acao=LISTAR_FUNCIONARIOS&callback=${nomeCallback}`;
+        tag.onerror = () => {
+          clearTimeout(timeout);
+          reject(new Error('o navegador bloqueou ou não conseguiu carregar o <script> (evento onerror)'));
+        };
+        document.body.appendChild(tag);
+      });
+      linhas.push(`✅ Tag <script> (método real do app): ${resultadoScript}`);
+    } catch (err) {
+      linhas.push(`❌ Tag <script> (método real do app): ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    setDiagnostico(linhas.join('\n'));
+    setDiagnosticando(false);
   }
 
   return (
@@ -79,6 +128,21 @@ export function Login() {
           >
             {carregando ? 'Entrando...' : 'Entrar'}
           </button>
+
+          <button
+            type="button"
+            onClick={testarConexao}
+            disabled={diagnosticando}
+            className="text-xs text-brand-blue underline disabled:opacity-60"
+          >
+            {diagnosticando ? 'Diagnosticando...' : 'Diagnosticar conexão com o servidor'}
+          </button>
+
+          {diagnostico && (
+            <pre className="text-xs bg-brand-light rounded-lg p-3 whitespace-pre-wrap break-all border border-brand-dark/10">
+              {diagnostico}
+            </pre>
+          )}
         </form>
       </main>
     </div>

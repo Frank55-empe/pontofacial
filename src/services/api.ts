@@ -16,6 +16,13 @@ let callbackContador = 0;
 
 function chamarViaJSONP<T>(params: Record<string, string>): Promise<ApiResponse<T>> {
   return new Promise((resolve, reject) => {
+    if (!APPS_SCRIPT_URL || !APPS_SCRIPT_URL.startsWith('https://script.google.com')) {
+      reject(new Error(
+        `A URL do Apps Script em config.ts não parece válida. Valor atual: "${APPS_SCRIPT_URL}"`
+      ));
+      return;
+    }
+
     callbackContador += 1;
     const nomeCallback = `pontoCallback_${Date.now()}_${callbackContador}`;
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Cabecalho } from '../../components/Cabecalho';
 import { api } from '../../services/api';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
+import { APPS_SCRIPT_URL } from '../../config';
 
 export function Login() {
   const [usuario, setUsuario] = useState('');
@@ -62,7 +63,14 @@ export function Login() {
             />
           </div>
 
-          {erro && <p className="text-sm text-brand-warn">{erro}</p>}
+          {erro && (
+            <div className="text-sm text-brand-warn bg-brand-warn/10 rounded-lg p-3 flex flex-col gap-1">
+              <p>{erro}</p>
+              <p className="text-xs text-brand-dark/50 break-all">
+                URL configurada no app: {APPS_SCRIPT_URL}
+              </p>
+            </div>
+          )}
 
           <button
             type="submit"

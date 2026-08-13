@@ -84,6 +84,32 @@ async function chamarBackend<T>(params: Record<string, string>): Promise<ApiResp
   }
 }
 
+// Usa POST em vez de GET para dados grandes (como o descritor facial,
+// que são 128 números). Uma URL de GET tem limite de tamanho (~2000
+// caracteres) e o descritor sozinho já passa disso. O Content-Type
+// "text/plain" é de propósito: evita que o navegador dispare um
+// "preflight" de CORS, que o Apps Script não sabe responder direito.
+async function chamarBackendPost<T>(dados: Record<string, string>): Promise<ApiResponse<T>> {
+  validarUrl();
+  const controlador = new AbortController();
+  const timeout = setTimeout(() => controlador.abort(), 20000);
+
+  try {
+    const resposta = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(dados),
+      signal: controlador.signal,
+    });
+    if (!resposta.ok) {
+      throw new Error(`Servidor respondeu com status ${resposta.status}`);
+    }
+    return (await resposta.json()) as ApiResponse<T>;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // ---- Funções expostas para o resto do app ----
 
 export const api = {
@@ -91,13 +117,13 @@ export const api = {
   listarFuncionarios: () =>
     chamarBackend({ acao: 'LISTAR_FUNCIONARIOS' }),
 
-  /** Cadastra um novo funcionário (nome, cpf, cargo, descritor facial) */
+  /** Cadastra um novo funcionário (nome, cpf, cargo, descritor facial). Usa POST por causa do tamanho do descritor. */
   cadastrarFuncionario: (dados: Record<string, string>) =>
-    chamarBackend({ acao: 'CADASTRAR_FUNCIONARIO', ...dados }),
+    chamarBackendPost({ acao: 'CADASTRAR_FUNCIONARIO', ...dados }),
 
-  /** Atualiza dados de um funcionário existente (ex: desativar, trocar cargo) */
+  /** Atualiza dados de um funcionário existente (ex: desativar, trocar cargo, recadastrar rosto) */
   atualizarFuncionario: (id: string, dados: Record<string, string>) =>
-    chamarBackend({ acao: 'ATUALIZAR_FUNCIONARIO', id, ...dados }),
+    chamarBackendPost({ acao: 'ATUALIZAR_FUNCIONARIO', id, ...dados }),
 
   /** Registra uma batida de ponto */
   registrarPonto: (dados: Record<string, string>) =>

@@ -4,7 +4,8 @@ import { useAdminAuth } from '../../hooks/useAdminAuth';
 
 const ITENS = [
   { para: '/admin/funcionarios', titulo: 'Funcionários', descricao: 'Cadastrar, editar e desativar' },
-  { para: '/admin/espelho', titulo: 'Espelho de ponto', descricao: 'Consultar e exportar registros' },
+  { para: '/admin/espelho', titulo: 'Espelho de ponto', descricao: 'Consultar registros' },
+  { para: '/admin/relatorios', titulo: 'Relatórios mensais', descricao: 'Gerar PDF de ponto por funcionário' },
 ];
 
 export function Dashboard() {

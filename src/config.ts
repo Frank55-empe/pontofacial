@@ -18,4 +18,7 @@ export const APP_CONFIG = {
   limiarReconhecimentoFacial: 0.55,
   // Tolerância em minutos para considerar um atraso
   toleranciaAtrasoMinutos: 10,
+  // Jornada diária padrão (em horas). Usada nos relatórios para
+  // calcular quanto foi hora extra em cada dia trabalhado.
+  horasJornadaPadrao: 8,
 };

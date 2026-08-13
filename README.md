@@ -3,7 +3,7 @@
 Sistema próprio de controle de ponto por reconhecimento facial, com
 Google Sheets como banco de dados e hospedagem no GitHub Pages.
 
-## Status do projeto (Fase 1 concluída)
+## Status do projeto (Fases 1, 2 e 3 concluídas)
 
 - [x] Estrutura do projeto (React + TypeScript + Vite + Tailwind v4)
 - [x] Rotas: tela inicial, bater ponto, login admin, dashboard,
@@ -12,8 +12,8 @@ Google Sheets como banco de dados e hospedagem no GitHub Pages.
 - [x] Backend em Google Apps Script com planilhas de funcionários,
       registros de ponto e configurações
 - [x] Workflow de deploy automático no GitHub Pages
-- [ ] Fase 2: reconhecimento facial de verdade (face-api.js)
-- [ ] Fase 3: fluxo completo de bater ponto com confirmação
+- [x] Fase 2: reconhecimento facial de verdade (face-api.js)
+- [x] Fase 3: bater ponto automático com reconhecimento ao vivo
 - [ ] Fase 4: relatórios e exportação no painel admin
 
 ## Como rodar localmente

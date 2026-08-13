@@ -39,14 +39,16 @@ export function Login() {
     setDiagnostico('Testando...');
     const linhas: string[] = [];
 
-    // Teste 1: fetch() simples, só pra ver se o navegador consegue
-    // alcançar o domínio do Apps Script.
+    // Teste 1: fetch() de verdade, lendo a resposta (é o método
+    // principal que o app usa agora).
     try {
       const inicio = Date.now();
-      await fetch(`${APPS_SCRIPT_URL}?acao=LISTAR_FUNCIONARIOS&callback=diag`, { mode: 'no-cors' });
-      linhas.push(`✅ fetch() alcançou o servidor (${Date.now() - inicio}ms)`);
+      const resp = await fetch(`${APPS_SCRIPT_URL}?acao=LISTAR_FUNCIONARIOS&callback=diag`);
+      const texto = await resp.text();
+      linhas.push(`✅ fetch() (método principal): status ${resp.status} em ${Date.now() - inicio}ms`);
+      linhas.push(`   Resposta: ${texto.slice(0, 150)}`);
     } catch (err) {
-      linhas.push(`❌ fetch() falhou: ${err instanceof Error ? err.message : String(err)}`);
+      linhas.push(`❌ fetch() (método principal) falhou: ${err instanceof Error ? err.message : String(err)}`);
     }
 
     // Teste 2: exatamente o mesmo método que o app usa de verdade (tag <script>)
@@ -72,9 +74,9 @@ export function Login() {
         };
         document.body.appendChild(tag);
       });
-      linhas.push(`✅ Tag <script> (método real do app): ${resultadoScript}`);
+      linhas.push(`✅ Tag <script> (plano B): ${resultadoScript}`);
     } catch (err) {
-      linhas.push(`❌ Tag <script> (método real do app): ${err instanceof Error ? err.message : String(err)}`);
+      linhas.push(`❌ Tag <script> (plano B): ${err instanceof Error ? err.message : String(err)}`);
     }
 
     setDiagnostico(linhas.join('\n'));

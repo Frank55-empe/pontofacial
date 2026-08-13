@@ -19,6 +19,33 @@ const ABA_FUNCIONARIOS = 'funcionarios';
 const ABA_REGISTROS = 'registros_ponto';
 const ABA_CONFIG = 'configuracoes';
 
+// ---- Ponto de entrada para POST (usado no cadastro/edição de ---
+// ---- funcionário, porque o descritor facial é grande demais   ---
+// ---- para caber numa URL de GET) ----
+function doPost(e) {
+  let resposta;
+  try {
+    const corpo = JSON.parse(e.postData.contents);
+    const acao = String(corpo.acao || '').trim().toUpperCase();
+
+    switch (acao) {
+      case 'CADASTRAR_FUNCIONARIO':
+        resposta = cadastrarFuncionario(corpo);
+        break;
+      case 'ATUALIZAR_FUNCIONARIO':
+        resposta = atualizarFuncionario(corpo);
+        break;
+      default:
+        resposta = { sucesso: false, erro: 'Ação desconhecida (POST): ' + acao };
+    }
+  } catch (erro) {
+    resposta = { sucesso: false, erro: String(erro) };
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(resposta))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 // ---- Ponto de entrada único (JSONP) ----
 function doGet(e) {
   // Se você rodar "doGet" direto no editor (botão Executar), o Apps

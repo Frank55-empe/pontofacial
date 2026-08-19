@@ -1,0 +1,372 @@
+import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+interface BotaoGrandeProps {
+  para: string;
+  icone: ReactNode;
+  titulo: string;
+  descricao: string;
+  variante?: 'primario' | 'secundario';
+}
+
+export function BotaoGrande({ para, icone, titulo, descricao, variante = 'primario' }: BotaoGrandeProps) {
+  const navegar = useNavigate();
+  const classes =
+    variante === 'primario'
+      ? 'bg-gradient-to-br from-brand-blue to-brand-dark text-white shadow-lg shadow-brand-blue/20 hover:shadow-xl hover:shadow-brand-blue/30 hover:-translate-y-1'
+      : 'bg-white text-brand-dark border border-brand-blue/20 shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-brand-blue/40';
+  return (
+    <button
+      onClick={() => navegar(para)}
+      className={`flex flex-col items-center gap-3 rounded-2xl px-8 py-10 w-64 transition-all duration-300 ${classes}`}
+    >
+      <div className="text-4xl">{icone}</div>
+      <div className="text-lg font-semibold">{titulo}</div>
+      <div className={`text-sm text-center ${variante === 'primario' ? 'text-white/70' : 'text-brand-dark/50'}`}>
+        {descricao}
+      </div>
+    </button>
+  );
+}Arquivo 4: src/pages/BaterPonto.tsxCódigo123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101102103104105106107108109110111112113114115116117118119120121122123124125126127128129130131132133134135136137138139140141142143144145146147148149150151152153154155156157158159160161162163164165166167168169170171172173174175176177178179180181182183184185186187188189190191192193194195196197198199200201202203204205206207208209210211212213214215216217218219220221222223224225226227228229230231232233234235236237238239240241242243244245246247248249250251252253254255256257258259260261262263264265266267268269270271272273274275276277278279280281282283284285286287288289290291292293294295296297298299300301302303304305306307308309310311312313314315316317318319320321322323324325326327328329330331332333334335336337338339340341342343import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Cabecalho } from '../components/Cabecalho';
+import { api } from '../services/api';
+import {
+  carregarModelosFaciais,
+  detectarRosto,
+  encontrarMelhorCorrespondencia,
+} from '../services/faceRecognition';
+import {
+  falarConfirmacaoPonto,
+  tocarBipe,
+  inicializarAudio,
+} from '../services/audioFeedback';
+import type { Funcionario, RegistroPonto, TipoBatida } from '../types';
+
+type Status =
+  | 'carregando'
+  | 'procurando'
+  | 'processando'
+  | 'sucesso'
+  | 'nao_reconhecido'
+  | 'erro'
+  | 'camera_negada';
+
+interface ResultadoBatida {
+  nome: string;
+  tipo: TipoBatida;
+  horario: string;
+}
+
+const ROTULOS_BATIDA: Record<TipoBatida, string> = {
+  entrada: 'Entrada',
+  saida_almoco: 'Saida para almoco',
+  volta_almoco: 'Retorno do almoco',
+  saida: 'Saida',
+};
+
+const TENTATIVAS_ATE_AVISAR_DESCONHECIDO = 3;
+const COOLDOWN_MS = 5000;
+
+export function BaterPonto() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const funcionariosRef = useRef<Funcionario[]>([]);
+  const emProcessamentoRef = useRef(false);
+  const tentativasSemMatchRef = useRef(0);
+  const intervaloRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cooldownRef = useRef<number | null>(null);
+
+  const [status, setStatus] = useState<Status>('carregando');
+  const [mensagem, setMensagem] = useState('Inicializando camera...');
+  const [resultado, setResultado] = useState<ResultadoBatida | null>(null);
+  const [horaAtual, setHoraAtual] = useState('');
+
+  useEffect(() => {
+    const atualizar = () => {
+      const agora = new Date();
+      setHoraAtual(agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    };
+    atualizar();
+    const id = setInterval(atualizar, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    inicializarAudio();
+  }, []);
+
+  const proximaBatida = useCallback(
+    async (funcionarioId: string): Promise<TipoBatida> => {
+      try {
+        const resposta = await api.listarRegistrosDoDia(funcionarioId);
+        const registros = (resposta.dados as RegistroPonto[]) || [];
+        const tiposJaRegistrados = new Set(registros.map((r) => r.tipoBatida));
+        const ordem: TipoBatida[] = ['entrada', 'saida_almoco', 'volta_almoco', 'saida'];
+        for (const tipo of ordem) {
+          if (!tiposJaRegistrados.has(tipo)) return tipo;
+        }
+        return 'saida';
+      } catch {
+        return 'entrada';
+      }
+    },
+    []
+  );
+
+  const registrarReconhecimento = useCallback(
+    async (id: string, nome: string, distancia: number) => {
+      emProcessamentoRef.current = true;
+      setStatus('processando');
+      setMensagem(`Identificado: ${nome}. Registrando ponto...`);
+
+      try {
+        const tipo = await proximaBatida(id);
+        const agora = new Date();
+
+        const resposta = await api.registrarPonto({
+          funcionarioId: id,
+          nomeFuncionario: nome,
+          tipoBatida: tipo,
+          dataHora: agora.toISOString(),
+          metodoConfirmacao: 'facial',
+          distanciaFacial: distancia.toFixed(4),
+        });
+
+        if (resposta.sucesso) {
+          const horario = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          setResultado({ nome, tipo, horario });
+          setStatus('sucesso');
+          tocarBipe('sucesso');
+          falarConfirmacaoPonto(nome, tipo);
+
+          cooldownRef.current = window.setTimeout(() => {
+            tentativasSemMatchRef.current = 0;
+            emProcessamentoRef.current = false;
+            setStatus('procurando');
+            setMensagem('');
+          }, COOLDOWN_MS);
+        } else {
+          setStatus('erro');
+          setMensagem(resposta.erro || 'Erro ao registrar ponto.');
+          tocarBipe('erro');
+          window.setTimeout(() => {
+            emProcessamentoRef.current = false;
+            setStatus('procurando');
+          }, 3000);
+        }
+      } catch {
+        setStatus('erro');
+        setMensagem('Falha de comunicacao. Tente novamente.');
+        tocarBipe('erro');
+        window.setTimeout(() => {
+          emProcessamentoRef.current = false;
+          setStatus('procurando');
+        }, 3000);
+      }
+    },
+    [proximaBatida]
+  );
+
+  const cicloDeteccao = useCallback(async () => {
+    if (emProcessamentoRef.current) return;
+    if (!videoRef.current || videoRef.current.readyState < 2) return;
+
+    const rosto = await detectarRosto(videoRef.current);
+    if (!rosto) return;
+
+    const correspondencia = encontrarMelhorCorrespondencia(rosto.descritor, funcionariosRef.current);
+
+    if (correspondencia) {
+      tentativasSemMatchRef.current = 0;
+      await registrarReconhecimento(correspondencia.id, correspondencia.nome, correspondencia.distancia);
+      return;
+    }
+
+    tentativasSemMatchRef.current += 1;
+    if (tentativasSemMatchRef.current >= TENTATIVAS_ATE_AVISAR_DESCONHECIDO) {
+      emProcessamentoRef.current = true;
+      tocarBipe('erro');
+      setStatus('nao_reconhecido');
+      setMensagem('Rosto nao reconhecido. Procure o administrador.');
+      window.setTimeout(() => {
+        tentativasSemMatchRef.current = 0;
+        emProcessamentoRef.current = false;
+        setStatus('procurando');
+      }, 4000);
+    }
+  }, [registrarReconhecimento]);
+
+  useEffect(() => {
+    let cancelado = false;
+
+    async function iniciar() {
+      try {
+        setStatus('carregando');
+        setMensagem('Carregando reconhecimento facial...');
+
+        const [, stream, respostaFuncionarios] = await Promise.all([
+          carregarModelosFaciais(),
+          navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } }),
+          api.listarFuncionarios(),
+        ]);
+
+        if (cancelado) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+
+        const ativos = ((respostaFuncionarios.dados as Funcionario[]) || []).filter((f) => f.ativo && f.descritorFacial);
+        funcionariosRef.current = ativos;
+
+        if (ativos.length === 0) {
+          setStatus('erro');
+          setMensagem('Nenhum funcionario cadastrado com reconhecimento facial.');
+          return;
+        }
+
+        setStatus('procurando');
+        setMensagem('');
+        intervaloRef.current = setInterval(cicloDeteccao, 800);
+      } catch (err) {
+        if (cancelado) return;
+        if (err instanceof DOMException && err.name === 'NotAllowedError') {
+          setStatus('camera_negada');
+          setMensagem('Acesso a camera foi negado. Permita o acesso e recarregue.');
+        } else {
+          setStatus('erro');
+          setMensagem('Erro ao inicializar. Recarregue a pagina.');
+        }
+      }
+    }
+
+    iniciar();
+
+    return () => {
+      cancelado = true;
+      if (intervaloRef.current) clearInterval(intervaloRef.current);
+      if (cooldownRef.current) clearTimeout(cooldownRef.current);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (status === 'procurando' && !intervaloRef.current) {
+      intervaloRef.current = setInterval(cicloDeteccao, 800);
+    }
+    if (status !== 'procurando' && intervaloRef.current) {
+      clearInterval(intervaloRef.current);
+      intervaloRef.current = null;
+    }
+  }, [status, cicloDeteccao]);
+
+  const corMoldura =
+    status === 'sucesso'
+      ? 'border-brand-accent shadow-[0_0_20px_rgba(30,138,95,0.5)]'
+      : status === 'erro' || status === 'nao_reconhecido'
+        ? 'border-brand-warn shadow-[0_0_20px_rgba(194,65,12,0.4)]'
+        : status === 'processando'
+          ? 'border-brand-blue shadow-[0_0_20px_rgba(22,58,110,0.4)]'
+          : 'border-white/30';
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-brand-light to-white">
+      <Cabecalho subtitulo="Bater ponto" />
+      <main className="flex-1 flex flex-col items-center justify-center gap-6 px-4 py-8">
+        <div className="text-center">
+          <p className="text-3xl font-mono font-bold text-brand-dark tabular-nums">{horaAtual}</p>
+          <p className="text-sm text-brand-dark/50">
+            {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+
+        <div className="relative w-full max-w-md aspect-[4/3] rounded-3xl overflow-hidden bg-black shadow-2xl ring-1 ring-black/10">
+          <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover -scale-x-100" />
+          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+          <div className={`absolute inset-6 border-4 rounded-2xl pointer-events-none transition-all duration-500 ${corMoldura}`} />
+
+          {status === 'procurando' && (
+            <div className="absolute top-3 right-3 flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5">
+              <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse" />
+              <span className="text-white text-xs font-medium">Ao vivo</span>
+            </div>
+          )}
+
+          {status === 'carregando' && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white bg-black/70">
+              <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+              <p className="text-sm text-white/80 text-center px-6">{mensagem}</p>
+            </div>
+          )}
+
+          {status === 'sucesso' && resultado && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-brand-accent/90 to-brand-blue/90 backdrop-blur-sm text-white text-center px-6 animate-[fadeIn_0.3s_ease-out]">
+              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center animate-[scaleIn_0.4s_ease-out]">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <p className="text-xl font-bold">Bem-vindo(a), {resultado.nome.split(' ')[0]}!</p>
+              <p className="text-sm text-white/80">{ROTULOS_BATIDA[resultado.tipo]} registrada</p>
+              <p className="text-2xl font-mono font-bold mt-1 tabular-nums">{resultado.horario}</p>
+            </div>
+          )}
+
+          {status === 'processando' && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/60 text-white text-center px-6">
+              <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+              <p className="text-sm">{mensagem}</p>
+            </div>
+          )}
+
+          {status === 'nao_reconhecido' && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 text-white text-center px-6">
+              <div className="w-14 h-14 rounded-full bg-brand-warn/30 flex items-center justify-center">
+                <svg className="w-8 h-8 text-brand-warn" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <p className="text-sm">{mensagem}</p>
+            </div>
+          )}
+
+          {status === 'erro' && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 text-white text-center px-6">
+              <div className="w-14 h-14 rounded-full bg-red-500/30 flex items-center justify-center">
+                <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <p className="text-sm">{mensagem}</p>
+            </div>
+          )}
+
+          {status === 'camera_negada' && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 text-white text-center px-6">
+              <div className="text-4xl">📷</div>
+              <p className="text-sm">{mensagem}</p>
+            </div>
+          )}
+        </div>
+
+        {status === 'procurando' && (
+          <p className="text-sm text-brand-dark/60 text-center max-w-sm">
+            Posicione seu rosto na moldura e aguarde o reconhecimento automatico
+          </p>
+        )}
+
+        <Link to="/" className="text-sm text-brand-dark/50 hover:text-brand-dark hover:underline transition-colors">
+          ← Voltar ao inicio
+        </Link>
+      </main>
+    </div>
+  );
+}

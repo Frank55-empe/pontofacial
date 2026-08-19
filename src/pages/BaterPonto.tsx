@@ -20,5 +20,9 @@ const proximaBatida = useCallback(
       return 'entrada';
     }
   },
-  []
+  [
+    const ativos = ((respostaFuncionarios.dados as Funcionario[]) || []).filter(
+  (f) => f.ativo && f.descritorFacial
+);
+  ]
 );

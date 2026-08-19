@@ -208,7 +208,7 @@ export function BaterPonto() {
         setStatus('carregando');
         setMensagem('Carregando reconhecimento facial...');
 
-        const [modelos, stream, respostaFuncionarios] = await Promise.all([
+        const [, stream, respostaFuncionarios] = await Promise.all([
           carregarModelosFaciais(),
           navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'user', width: 640, height: 480 },

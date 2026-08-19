@@ -1,106 +1,114 @@
-import { APPS_SCRIPT_URL } from '../config';
-import type { ApiResponse, RegistroPonto } from '../types';
-
-// ============================================================
-// COMUNICAÇÃO COM O GOOGLE APPS SCRIPT
-// ============================================================
-
-function validarUrl() {
-  if (!APPS_SCRIPT_URL || !APPS_SCRIPT_URL.startsWith('https://script.google.com')) {
-    throw new Error(
-      `A URL do Apps Script em config.ts não parece válida. Valor atual: "${APPS_SCRIPT_URL}"`
-    );
-  }
+interface OpcoesAudio {
+  habilitado: boolean;
+  velocidade: number;
+  tom: number;
+  volume: number;
 }
 
-async function chamarViaFetch<T>(params: Record<string, string>): Promise<ApiResponse<T>> {
-  const query = new URLSearchParams(params).toString();
-  const controlador = new AbortController();
-  const timeout = setTimeout(() => controlador.abort(), 15000);
-  try {
-    const resposta = await fetch(`${APPS_SCRIPT_URL}?${query}`, {
-      method: 'GET',
-      signal: controlador.signal,
-    });
-    if (!resposta.ok) {
-      throw new Error(`Servidor respondeu com status ${resposta.status}`);
-    }
-    return (await resposta.json()) as ApiResponse<T>;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-let callbackContador = 0;
-
-function chamarViaJSONP<T>(params: Record<string, string>): Promise<ApiResponse<T>> {
-  return new Promise((resolve, reject) => {
-    callbackContador += 1;
-    const nomeCallback = `pontoCallback_${Date.now()}_${callbackContador}`;
-
-    const timeout = setTimeout(() => {
-      limpar();
-      reject(new Error('Tempo esgotado ao falar com o servidor. Verifique sua internet.'));
-    }, 15000);
-
-    function limpar() {
-      clearTimeout(timeout);
-      delete (window as unknown as Record<string, unknown>)[nomeCallback];
-      script.remove();
-    }
-
-    (window as unknown as Record<string, unknown>)[nomeCallback] = (resposta: ApiResponse<T>) => {
-      limpar();
-      resolve(resposta);
-    };
-
-    const query = new URLSearchParams({ ...params, callback: nomeCallback }).toString();
-    const script = document.createElement('script');
-    script.src = `${APPS_SCRIPT_URL}?${query}`;
-    script.onerror = () => {
-      limpar();
-      reject(new Error('Não foi possível conectar ao servidor. Confira a URL do Apps Script em config.ts e sua conexão de internet.'));
-    };
-    document.body.appendChild(script);
-  });
-}
-
-async function chamarBackend<T>(params: Record<string, string>): Promise<ApiResponse<T>> {
-  validarUrl();
-  try {
-    return await chamarViaFetch<T>(params);
-  } catch {
-    return await chamarViaJSONP<T>(params);
-  }
-}
-
-// ---- Funções expostas para o resto do app ----
-export const api = {
-  /** Lista todos os funcionários ativos, com seus descritores faciais */
-  listarFuncionarios: () =>
-    chamarBackend({ acao: 'LISTAR_FUNCIONARIOS' }),
-
-  /** Cadastra um novo funcionário */
-  cadastrarFuncionario: (dados: Record<string, string>) =>
-    chamarBackend({ acao: 'CADASTRAR_FUNCIONARIO', ...dados }),
-
-  /** Atualiza dados de um funcionário existente */
-  atualizarFuncionario: (id: string, dados: Record<string, string>) =>
-    chamarBackend({ acao: 'ATUALIZAR_FUNCIONARIO', id, ...dados }),
-
-  /** Registra uma batida de ponto */
-  registrarPonto: (dados: Record<string, string>) =>
-    chamarBackend({ acao: 'REGISTRAR_PONTO', ...dados }),
-
-  /** Busca o espelho de ponto de um funcionário num período */
-  buscarEspelhoPonto: (funcionarioId: string, mes: string, ano: string) =>
-    chamarBackend({ acao: 'ESPELHO_PONTO', funcionarioId, mes, ano }),
-
-  /** Login do admin */
-  loginAdmin: (usuario: string, senha: string) =>
-    chamarBackend({ acao: 'LOGIN_ADMIN', usuario, senha }),
-
-  /** Lista os registros de ponto do funcionário no dia atual */
-  listarRegistrosDoDia: (funcionarioId: string): Promise<ApiResponse<RegistroPonto[]>> =>
-    chamarBackend<RegistroPonto[]>({ acao: 'LISTAR_REGISTROS_DIA', funcionarioId }),
+const OPCOES_PADRAO: OpcoesAudio = {
+  habilitado: true,
+  velocidade: 0.95,
+  tom: 1,
+  volume: 1,
 };
+
+let opcoesAtuais: OpcoesAudio = { ...OPCOES_PADRAO };
+
+export function configurarAudio(novasOpcoes: Partial<OpcoesAudio>): void {
+  opcoesAtuais = { ...opcoesAtuais, ...novasOpcoes };
+}
+
+export function getOpcoesAudio(): OpcoesAudio {
+  return { ...opcoesAtuais };
+}
+
+function obterSaudacaoHorario(): string {
+  const hora = new Date().getHours();
+  if (hora < 12) return 'Bom dia';
+  if (hora < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
+
+function obterMensagemDespedida(): string {
+  const hora = new Date().getHours();
+  if (hora < 12) return 'Tenha um excelente dia';
+  if (hora < 18) return 'Tenha uma boa tarde';
+  return 'Tenha um bom descanso';
+}
+
+export function falar(texto: string): void {
+  if (!opcoesAtuais.habilitado) return;
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(texto);
+  utterance.lang = 'pt-BR';
+  utterance.rate = opcoesAtuais.velocidade;
+  utterance.pitch = opcoesAtuais.tom;
+  utterance.volume = opcoesAtuais.volume;
+  const vozes = window.speechSynthesis.getVoices();
+  const vozPt = vozes.find(
+    (v) => v.lang === 'pt-BR' || v.lang === 'pt_BR' || v.lang === 'pt-PT'
+  );
+  if (vozPt) utterance.voice = vozPt;
+  window.speechSynthesis.speak(utterance);
+}
+
+export function falarConfirmacaoPonto(
+  nome: string,
+  tipoBatida: 'entrada' | 'saida_almoco' | 'volta_almoco' | 'saida'
+): void {
+  const saudacao = obterSaudacaoHorario();
+  const primeiroNome = nome.split(' ')[0];
+  let mensagem: string;
+  switch (tipoBatida) {
+    case 'entrada':
+      mensagem = `${saudacao}, ${primeiroNome}! Seu ponto de entrada foi registrado com sucesso.`;
+      break;
+    case 'saida_almoco':
+      mensagem = `${saudacao}, ${primeiroNome}! Saída para o almoço registrada. Bom apetite!`;
+      break;
+    case 'volta_almoco':
+      mensagem = `${saudacao}, ${primeiroNome}! Retorno do almoço registrado com sucesso.`;
+      break;
+    case 'saida':
+      mensagem = `${saudacao}, ${primeiroNome}! Sua saída foi registrada. ${obterMensagemDespedida()}!`;
+      break;
+    default:
+      mensagem = `${saudacao}, ${primeiroNome}! Seu ponto foi registrado com sucesso.`;
+  }
+  falar(mensagem);
+}
+
+export function tocarBipe(tipo: 'sucesso' | 'erro' = 'erro'): void {
+  try {
+    const ctx = new (window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    if (tipo === 'sucesso') {
+      oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+      oscillator.frequency.setValueAtTime(1320, ctx.currentTime + 0.1);
+    } else {
+      oscillator.frequency.setValueAtTime(220, ctx.currentTime);
+      oscillator.frequency.setValueAtTime(180, ctx.currentTime + 0.15);
+    }
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.3);
+    oscillator.onended = () => ctx.close();
+  } catch {
+    // ignora se AudioContext falhar
+  }
+}
+
+export function inicializarAudio(): void {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
+}

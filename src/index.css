@@ -1,73 +1,42 @@
-@import "tailwindcss";
+import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-@theme {
-  --color-brand-dark: #0b1d3a;
-  --color-brand-blue: #163a6e;
-  --color-brand-light: #eaf1fb;
-  --color-brand-accent: #1e8a5f;
-  --color-brand-warn: #c2410c;
+interface BotaoGrandeProps {
+  para: string;
+  icone: ReactNode;
+  titulo: string;
+  descricao: string;
+  variante?: 'primario' | 'secundario';
 }
 
-body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background-color: var(--color-brand-light);
-  -webkit-font-smoothing: antialiased;
-}
+export function BotaoGrande({
+  para,
+  icone,
+  titulo,
+  descricao,
+  variante = 'primario',
+}: BotaoGrandeProps) {
+  const navegar = useNavigate();
 
-/* ===== Animações ===== */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+  const classes =
+    variante === 'primario'
+      ? 'bg-gradient-to-br from-brand-blue to-brand-dark text-white shadow-lg shadow-brand-blue/20 hover:shadow-xl hover:shadow-brand-blue/30 hover:-translate-y-1'
+      : 'bg-white text-brand-dark border border-brand-blue/20 shadow-sm hover:shadow-md hover:-translate-y-1 hover:border-brand-blue/40';
 
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulseRing {
-  0% {
-    box-shadow: 0 0 0 0 rgba(30, 138, 95, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 12px rgba(30, 138, 95, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(30, 138, 95, 0);
-  }
-}
-
-/* ===== Scrollbar customizada ===== */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--color-brand-light);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-brand-blue);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-brand-dark);
+  return (
+    <button
+      onClick={() => navegar(para)}
+      className={`flex flex-col items-center gap-3 rounded-2xl px-8 py-10 w-64 transition-all duration-300 ${classes}`}
+    >
+      <div className="text-4xl">{icone}</div>
+      <div className="text-lg font-semibold">{titulo}</div>
+      <div
+        className={`text-sm text-center ${
+          variante === 'primario' ? 'text-white/70' : 'text-brand-dark/50'
+        }`}
+      >
+        {descricao}
+      </div>
+    </button>
+  );
 }

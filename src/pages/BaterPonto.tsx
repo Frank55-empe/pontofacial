@@ -1,7 +1,7 @@
 import { Cabecalho } from '../components/Cabecalho';
 import { BotaoGrande } from '../components/BotaoGrande';
 
-export function Home() {
+export function BaterPonto() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-brand-light via-white to-brand-light">
       <Cabecalho />
@@ -67,5 +67,4 @@ export function Home() {
       </footer>
     </div>
   );
-  export default BaterPonto; 
 }

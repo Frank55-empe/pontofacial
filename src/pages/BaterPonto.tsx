@@ -12,7 +12,7 @@ import {
   tocarBipe,
   inicializarAudio,
 } from '../services/audioFeedback';
-import type { Funcionario, TipoBatida } from '../types';
+import type { Funcionario, RegistroPonto, TipoBatida } from '../types';
 
 type Status =
   | 'carregando'

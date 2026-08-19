@@ -89,7 +89,7 @@ export function BaterPonto() {
     async (id: string, nome: string, distancia: number) => {
       emProcessamentoRef.current = true;
       setStatus('processando');
-      setMensagem(`Identificado: ${nome}. Registrando ponto...`);
+      setMensagem('Identificado: ' + nome + '. Registrando ponto...');
 
       try {
         const tipo = await proximaBatida(id);
@@ -262,7 +262,7 @@ export function BaterPonto() {
         <div className="relative w-full max-w-md aspect-[4/3] rounded-3xl overflow-hidden bg-black shadow-2xl ring-1 ring-black/10">
           <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover -scale-x-100" />
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-          <div className={`absolute inset-6 border-4 rounded-2xl pointer-events-none transition-all duration-500 ${corMoldura}`} />
+          <div className={'absolute inset-6 border-4 rounded-2xl pointer-events-none transition-all duration-500 ' + corMoldura} />
 
           {status === 'procurando' && (
             <div className="absolute top-3 right-3 flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5">
@@ -279,8 +279,8 @@ export function BaterPonto() {
           )}
 
           {status === 'sucesso' && resultado && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-brand-accent/90 to-brand-blue/90 backdrop-blur-sm text-white text-center px-6 animate-[fadeIn_0.3s_ease-out]">
-              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center animate-[scaleIn_0.4s_ease-out]">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-gradient-to-br from-brand-accent/90 to-brand-blue/90 backdrop-blur-sm text-white text-center px-6">
+              <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
                 <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
@@ -335,7 +335,7 @@ export function BaterPonto() {
         )}
 
         <Link to="/" className="text-sm text-brand-dark/50 hover:text-brand-dark hover:underline transition-colors">
-          ← Voltar ao inicio
+          Voltar ao inicio
         </Link>
       </main>
     </div>

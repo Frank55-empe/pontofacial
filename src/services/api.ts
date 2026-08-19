@@ -1,16 +1,9 @@
 import { APPS_SCRIPT_URL } from '../config';
-import type { ApiResponse } from '../types';
+import type { ApiResponse, RegistroPonto } from '../types';
 
 // ============================================================
 // COMUNICAÇÃO COM O GOOGLE APPS SCRIPT
 // ============================================================
-// Tenta primeiro com fetch() normal (mais simples e confiável).
-// O Apps Script, quando implantado com "Quem pode acessar: Qualquer
-// pessoa", já responde com os cabeçalhos de CORS certos pra isso
-// funcionar direto. Se o fetch() falhar por qualquer motivo (rede,
-// alguma extensão de navegador bloqueando, etc), cai automaticamente
-// pro método antigo via tag <script> (JSONP), que é o mesmo truque
-// usado no Bolão da Mega PRO e no Bolão Copa 2026.
 
 function validarUrl() {
   if (!APPS_SCRIPT_URL || !APPS_SCRIPT_URL.startsWith('https://script.google.com')) {
@@ -24,7 +17,6 @@ async function chamarViaFetch<T>(params: Record<string, string>): Promise<ApiRes
   const query = new URLSearchParams(params).toString();
   const controlador = new AbortController();
   const timeout = setTimeout(() => controlador.abort(), 15000);
-
   try {
     const resposta = await fetch(`${APPS_SCRIPT_URL}?${query}`, {
       method: 'GET',
@@ -67,7 +59,7 @@ function chamarViaJSONP<T>(params: Record<string, string>): Promise<ApiResponse<
     script.src = `${APPS_SCRIPT_URL}?${query}`;
     script.onerror = () => {
       limpar();
-      reject(new Error('Não foi possível conectar ao servidor (nem por fetch, nem por script). Confira a URL do Apps Script em config.ts e sua conexão de internet.'));
+      reject(new Error('Não foi possível conectar ao servidor. Confira a URL do Apps Script em config.ts e sua conexão de internet.'));
     };
     document.body.appendChild(script);
   });
@@ -78,24 +70,21 @@ async function chamarBackend<T>(params: Record<string, string>): Promise<ApiResp
   try {
     return await chamarViaFetch<T>(params);
   } catch {
-    // Se o fetch falhar (rede, CORS, extensão bloqueando, etc),
-    // tenta o método antigo como plano B antes de desistir.
     return await chamarViaJSONP<T>(params);
   }
 }
 
 // ---- Funções expostas para o resto do app ----
-
 export const api = {
-  /** Lista todos os funcionários ativos, com seus descritores faciais, para reconhecimento 1:n */
+  /** Lista todos os funcionários ativos, com seus descritores faciais */
   listarFuncionarios: () =>
     chamarBackend({ acao: 'LISTAR_FUNCIONARIOS' }),
 
-  /** Cadastra um novo funcionário (nome, cpf, cargo, descritor facial) */
+  /** Cadastra um novo funcionário */
   cadastrarFuncionario: (dados: Record<string, string>) =>
     chamarBackend({ acao: 'CADASTRAR_FUNCIONARIO', ...dados }),
 
-  /** Atualiza dados de um funcionário existente (ex: desativar, trocar cargo, recadastrar rosto) */
+  /** Atualiza dados de um funcionário existente */
   atualizarFuncionario: (id: string, dados: Record<string, string>) =>
     chamarBackend({ acao: 'ATUALIZAR_FUNCIONARIO', id, ...dados }),
 
@@ -107,7 +96,11 @@ export const api = {
   buscarEspelhoPonto: (funcionarioId: string, mes: string, ano: string) =>
     chamarBackend({ acao: 'ESPELHO_PONTO', funcionarioId, mes, ano }),
 
-  /** Login simples do admin (usuário/senha guardados numa aba de configurações) */
+  /** Login do admin */
   loginAdmin: (usuario: string, senha: string) =>
     chamarBackend({ acao: 'LOGIN_ADMIN', usuario, senha }),
+
+  /** Lista os registros de ponto do funcionário no dia atual */
+  listarRegistrosDoDia: (funcionarioId: string): Promise<ApiResponse<RegistroPonto[]>> =>
+    chamarBackend<RegistroPonto[]>({ acao: 'LISTAR_REGISTROS_DIA', funcionarioId }),
 };

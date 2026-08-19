@@ -1,15 +1,12 @@
 // ============================================================
 // SISTEMA DE ÁUDIO - FEEDBACK POR VOZ (Web Speech API)
 // ============================================================
-// Usa a API nativa do navegador (SpeechSynthesis) para falar
-// mensagens de confirmação ao registrar o ponto. Não precisa de
-// nenhum arquivo de áudio externo, funciona offline e é gratuito.
 
 interface OpcoesAudio {
   habilitado: boolean;
-  velocidade: number; // 0.1 a 10 (padrão: 1)
-  tom: number; // 0 a 2 (padrão: 1), 1 = voz padrão
-  volume: number; // 0 a 1 (padrão: 1)
+  velocidade: number;
+  tom: number;
+  volume: number;
 }
 
 const OPCOES_PADRAO: OpcoesAudio = {
@@ -43,10 +40,6 @@ function obterMensagemDespedida(): string {
   return 'Tenha um bom descanso';
 }
 
-/**
- * Fala um texto usando a Web Speech API.
- * Cancela qualquer fala anterior antes de iniciar.
- */
 export function falar(texto: string): void {
   if (!opcoesAtuais.habilitado) return;
   if (!('speechSynthesis' in window)) return;
@@ -59,7 +52,6 @@ export function falar(texto: string): void {
   utterance.pitch = opcoesAtuais.tom;
   utterance.volume = opcoesAtuais.volume;
 
-  // Tenta encontrar uma voz em português brasileiro
   const vozes = window.speechSynthesis.getVoices();
   const vozPt = vozes.find(
     (v) => v.lang === 'pt-BR' || v.lang === 'pt_BR' || v.lang === 'pt-PT'
@@ -69,10 +61,6 @@ export function falar(texto: string): void {
   window.speechSynthesis.speak(utterance);
 }
 
-/**
- * Gera e fala a mensagem de confirmação de ponto registrado.
- * A mensagem varia conforme o horário e o tipo de batida.
- */
 export function falarConfirmacaoPonto(
   nome: string,
   tipoBatida: 'entrada' | 'saida_almoco' | 'volta_almoco' | 'saida'
@@ -102,10 +90,6 @@ export function falarConfirmacaoPonto(
   falar(mensagem);
 }
 
-/**
- * Toca um bipe simples usando Web Audio API.
- * Usado para alertas de erro (rosto não reconhecido, etc).
- */
 export function tocarBipe(tipo: 'sucesso' | 'erro' = 'erro'): void {
   try {
     const ctx = new (window.AudioContext ||
@@ -134,14 +118,10 @@ export function tocarBipe(tipo: 'sucesso' | 'erro' = 'erro'): void {
 
     oscillator.onended = () => ctx.close();
   } catch {
-    // Se o AudioContext falhar (ex: navegador antigo), simplesmente ignora
+    // ignora se AudioContext falhar
   }
 }
 
-/**
- * Inicializa o carregamento das vozes. Alguns navegadores
- * carregam as vozes de forma assíncrona.
- */
 export function inicializarAudio(): void {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.getVoices();

@@ -67,4 +67,5 @@ export function Home() {
       </footer>
     </div>
   );
+  export default BaterPonto; 
 }

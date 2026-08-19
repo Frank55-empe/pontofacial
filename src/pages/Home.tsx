@@ -18,8 +18,8 @@ export function Home() {
 
         <div className="flex flex-col sm:flex-row gap-5">
           <BotaoGrande
-            para="/bater-ponto"
-            icone={
+                  para="/admin/login"
+              icone={
               <svg
                 className="w-8 h-8"
                 fill="none"
@@ -39,7 +39,7 @@ export function Home() {
             variante="primario"
           />
           <BotaoGrande
-            to="/admin/login"
+            para="/admin/login"
             icone={
               <svg
                 className="w-8 h-8"

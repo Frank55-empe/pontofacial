@@ -4,10 +4,6 @@ import { Home } from './pages/Home';
 import BaterPonto from './pages/BaterPonto';
 import { RotaProtegida } from './components/RotaProtegida';
 
-// As telas administrativas (e a biblioteca de PDF, que é pesada) só
-// são carregadas quando alguém realmente entra na área admin. Assim,
-// a tela de "bater ponto" (a mais usada, no quiosque) carrega rápido,
-// sem baixar código que não vai usar.
 const Login = lazy(() => import('./pages/admin/Login').then(m => ({ default: m.Login })));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard').then(m => ({ default: m.Dashboard })));
 const Funcionarios = lazy(() => import('./pages/admin/Funcionarios').then(m => ({ default: m.Funcionarios })));
@@ -53,7 +49,7 @@ function App() {
         element={<RotaProtegida><Suspense fallback={<CarregandoAdmin />}><Relatorios /></Suspense></RotaProtegida>}
       />
     </Routes>
-   );
+  );
 }
 
-export default BaterPonto;
+export default App;

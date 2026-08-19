@@ -3,9 +3,7 @@ import type { ApiResponse, RegistroPonto } from '../types';
 
 function validarUrl() {
   if (!APPS_SCRIPT_URL || !APPS_SCRIPT_URL.startsWith('https://script.google.com')) {
-    throw new Error(
-      `A URL do Apps Script em config.ts nao parece valida. Valor atual: "${APPS_SCRIPT_URL}"`
-    );
+    throw new Error('URL do Apps Script invalida em config.ts');
   }
 }
 

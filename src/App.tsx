@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Home } from './pages/Home';
-import { BaterPonto } from './pages/BaterPonto';
+import BaterPonto from './pages/BaterPonto';
 import { RotaProtegida } from './components/RotaProtegida';
 
 // As telas administrativas (e a biblioteca de PDF, que é pesada) só
@@ -53,7 +53,7 @@ function App() {
         element={<RotaProtegida><Suspense fallback={<CarregandoAdmin />}><Relatorios /></Suspense></RotaProtegida>}
       />
     </Routes>
-  );
+   );
 }
 
-export default App;
+export default BaterPonto;

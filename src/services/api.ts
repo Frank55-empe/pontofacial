@@ -1,14 +1,10 @@
 import { APPS_SCRIPT_URL } from '../config';
 import type { ApiResponse, RegistroPonto } from '../types';
 
-// ============================================================
-// COMUNICAÇÃO COM O GOOGLE APPS SCRIPT
-// ============================================================
-
 function validarUrl() {
   if (!APPS_SCRIPT_URL || !APPS_SCRIPT_URL.startsWith('https://script.google.com')) {
     throw new Error(
-      `A URL do Apps Script em config.ts não parece válida. Valor atual: "${APPS_SCRIPT_URL}"`
+      `A URL do Apps Script em config.ts nao parece valida. Valor atual: "${APPS_SCRIPT_URL}"`
     );
   }
 }
@@ -37,10 +33,9 @@ function chamarViaJSONP<T>(params: Record<string, string>): Promise<ApiResponse<
   return new Promise((resolve, reject) => {
     callbackContador += 1;
     const nomeCallback = `pontoCallback_${Date.now()}_${callbackContador}`;
-
     const timeout = setTimeout(() => {
       limpar();
-      reject(new Error('Tempo esgotado ao falar com o servidor. Verifique sua internet.'));
+      reject(new Error('Tempo esgotado ao falar com o servidor.'));
     }, 15000);
 
     function limpar() {
@@ -59,7 +54,7 @@ function chamarViaJSONP<T>(params: Record<string, string>): Promise<ApiResponse<
     script.src = `${APPS_SCRIPT_URL}?${query}`;
     script.onerror = () => {
       limpar();
-      reject(new Error('Não foi possível conectar ao servidor. Confira a URL do Apps Script em config.ts e sua conexão de internet.'));
+      reject(new Error('Nao foi possivel conectar ao servidor.'));
     };
     document.body.appendChild(script);
   });
@@ -74,33 +69,25 @@ async function chamarBackend<T>(params: Record<string, string>): Promise<ApiResp
   }
 }
 
-// ---- Funções expostas para o resto do app ----
 export const api = {
-  /** Lista todos os funcionários ativos, com seus descritores faciais */
   listarFuncionarios: () =>
     chamarBackend({ acao: 'LISTAR_FUNCIONARIOS' }),
 
-  /** Cadastra um novo funcionário */
   cadastrarFuncionario: (dados: Record<string, string>) =>
     chamarBackend({ acao: 'CADASTRAR_FUNCIONARIO', ...dados }),
 
-  /** Atualiza dados de um funcionário existente */
   atualizarFuncionario: (id: string, dados: Record<string, string>) =>
     chamarBackend({ acao: 'ATUALIZAR_FUNCIONARIO', id, ...dados }),
 
-  /** Registra uma batida de ponto */
   registrarPonto: (dados: Record<string, string>) =>
     chamarBackend({ acao: 'REGISTRAR_PONTO', ...dados }),
 
-  /** Busca o espelho de ponto de um funcionário num período */
   buscarEspelhoPonto: (funcionarioId: string, mes: string, ano: string) =>
     chamarBackend({ acao: 'ESPELHO_PONTO', funcionarioId, mes, ano }),
 
-  /** Login do admin */
   loginAdmin: (usuario: string, senha: string) =>
     chamarBackend({ acao: 'LOGIN_ADMIN', usuario, senha }),
 
-  /** Lista os registros de ponto do funcionário no dia atual */
   listarRegistrosDoDia: (funcionarioId: string): Promise<ApiResponse<RegistroPonto[]>> =>
     chamarBackend<RegistroPonto[]>({ acao: 'LISTAR_REGISTROS_DIA', funcionarioId }),
 };

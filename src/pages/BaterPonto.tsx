@@ -37,7 +37,7 @@ const ROTULOS_BATIDA: Record<TipoBatida, string> = {
 };
 
 const TENTATIVAS_ATE_AVISAR_DESCONHECIDO = 3;
-const COOLDOWN_MS = 5000; // tempo entre batidas da mesma pessoa
+const COOLDOWN_MS = 5000;
 
 export function BaterPonto() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -76,30 +76,30 @@ export function BaterPonto() {
   }, []);
 
   // Determina a próxima batida esperada
- const proximaBatida = useCallback(
-  async (funcionarioId: string): Promise<TipoBatida> => {
-    try {
-      const resposta = await api.listarRegistrosDoDia(funcionarioId);
-      const registros = resposta.dados || [];
-      const tiposJaRegistrados = new Set(
-        registros.map((r) => r.tipoBatida)
-      );
-      const ordem: TipoBatida[] = [
-        'entrada',
-        'saida_almoco',
-        'volta_almoco',
-        'saida',
-      ];
-      for (const tipo of ordem) {
-        if (!tiposJaRegistrados.has(tipo)) return tipo;
+  const proximaBatida = useCallback(
+    async (funcionarioId: string): Promise<TipoBatida> => {
+      try {
+        const resposta = await api.listarRegistrosDoDia(funcionarioId);
+        const registros = (resposta.dados as RegistroPonto[]) || [];
+        const tiposJaRegistrados = new Set(
+          registros.map((r) => r.tipoBatida)
+        );
+        const ordem: TipoBatida[] = [
+          'entrada',
+          'saida_almoco',
+          'volta_almoco',
+          'saida',
+        ];
+        for (const tipo of ordem) {
+          if (!tiposJaRegistrados.has(tipo)) return tipo;
+        }
+        return 'saida';
+      } catch {
+        return 'entrada';
       }
-      return 'saida';
-    } catch {
-      return 'entrada';
-    }
-  },
-  []
-);
+    },
+    []
+  );
 
   // Registra a batida de ponto de quem foi reconhecido
   const registrarReconhecimento = useCallback(
@@ -133,7 +133,6 @@ export function BaterPonto() {
           tocarBipe('sucesso');
           falarConfirmacaoPonto(nome, tipo);
 
-          // Cooldown: aguarda antes de voltar a procurar
           cooldownRef.current = window.setTimeout(() => {
             tentativasSemMatchRef.current = 0;
             emProcessamentoRef.current = false;
@@ -162,7 +161,7 @@ export function BaterPonto() {
     [proximaBatida]
   );
 
-  // Ciclo de detecção: roda a cada X ms enquanto está "procurando"
+  // Ciclo de detecção
   const cicloDeteccao = useCallback(async () => {
     if (emProcessamentoRef.current) return;
     if (!videoRef.current || videoRef.current.readyState < 2) return;
@@ -226,9 +225,10 @@ export function BaterPonto() {
           videoRef.current.srcObject = stream;
         }
 
-        const ativos = (respostaFuncionarios.dados || []).filter(
-          (f: Funcionario) => f.ativo && f.descritorFacial
-        );
+        const ativos = (
+          (respostaFuncionarios.dados as Funcionario[]) || []
+        ).filter((f) => f.ativo && f.descritorFacial);
+
         funcionariosRef.current = ativos;
 
         if (ativos.length === 0) {
@@ -320,7 +320,7 @@ export function BaterPonto() {
             className="w-full h-full object-cover -scale-x-100"
           />
 
-          {/* Gradiente inferior para legibilidade */}
+          {/* Gradiente inferior */}
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
 
           {/* Moldura de guia */}
@@ -328,7 +328,7 @@ export function BaterPonto() {
             className={`absolute inset-6 border-4 rounded-2xl pointer-events-none transition-all duration-500 ${corMoldura}`}
           />
 
-          {/* Indicador de status (canto superior) */}
+          {/* Indicador "Ao vivo" */}
           {status === 'procurando' && (
             <div className="absolute top-3 right-3 flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5">
               <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse" />

@@ -31,9 +31,9 @@ interface ResultadoBatida {
 
 const ROTULOS_BATIDA: Record<TipoBatida, string> = {
   entrada: 'Entrada',
-  saida_almoco: 'Saída para almoço',
-  volta_almoco: 'Retorno do almoço',
-  saida: 'Saída',
+  saida_almoco: 'Saida para almoco',
+  volta_almoco: 'Retorno do almoco',
+  saida: 'Saida',
 };
 
 const TENTATIVAS_ATE_AVISAR_DESCONHECIDO = 3;
@@ -56,13 +56,7 @@ export function BaterPonto() {
   useEffect(() => {
     const atualizar = () => {
       const agora = new Date();
-      setHoraAtual(
-        agora.toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        })
-      );
+      setHoraAtual(agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     };
     atualizar();
     const id = setInterval(atualizar, 1000);
@@ -111,12 +105,7 @@ export function BaterPonto() {
         });
 
         if (resposta.sucesso) {
-          const horario = agora.toLocaleTimeString('pt-BR', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          });
-
+          const horario = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
           setResultado({ nome, tipo, horario });
           setStatus('sucesso');
           tocarBipe('sucesso');
@@ -157,18 +146,11 @@ export function BaterPonto() {
     const rosto = await detectarRosto(videoRef.current);
     if (!rosto) return;
 
-    const correspondencia = encontrarMelhorCorrespondencia(
-      rosto.descritor,
-      funcionariosRef.current
-    );
+    const correspondencia = encontrarMelhorCorrespondencia(rosto.descritor, funcionariosRef.current);
 
     if (correspondencia) {
       tentativasSemMatchRef.current = 0;
-      await registrarReconhecimento(
-        correspondencia.id,
-        correspondencia.nome,
-        correspondencia.distancia
-      );
+      await registrarReconhecimento(correspondencia.id, correspondencia.nome, correspondencia.distancia);
       return;
     }
 
@@ -196,9 +178,7 @@ export function BaterPonto() {
 
         const [, stream, respostaFuncionarios] = await Promise.all([
           carregarModelosFaciais(),
-          navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: 640, height: 480 },
-          }),
+          navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 640, height: 480 } }),
           api.listarFuncionarios(),
         ]);
 
@@ -212,10 +192,7 @@ export function BaterPonto() {
           videoRef.current.srcObject = stream;
         }
 
-        const ativos = (
-          (respostaFuncionarios.dados as Funcionario[]) || []
-        ).filter((f) => f.ativo && f.descritorFacial);
-
+        const ativos = ((respostaFuncionarios.dados as Funcionario[]) || []).filter((f) => f.ativo && f.descritorFacial);
         funcionariosRef.current = ativos;
 
         if (ativos.length === 0) {
@@ -226,7 +203,6 @@ export function BaterPonto() {
 
         setStatus('procurando');
         setMensagem('');
-
         intervaloRef.current = setInterval(cicloDeteccao, 800);
       } catch (err) {
         if (cancelado) return;
@@ -277,16 +253,9 @@ export function BaterPonto() {
       <Cabecalho subtitulo="Bater ponto" />
       <main className="flex-1 flex flex-col items-center justify-center gap-6 px-4 py-8">
         <div className="text-center">
-          <p className="text-3xl font-mono font-bold text-brand-dark tabular-nums">
-            {horaAtual}
-          </p>
+          <p className="text-3xl font-mono font-bold text-brand-dark tabular-nums">{horaAtual}</p>
           <p className="text-sm text-brand-dark/50">
-            {new Date().toLocaleDateString('pt-BR', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
+            {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
 

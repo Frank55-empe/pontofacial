@@ -167,16 +167,3 @@ AudioContext ||
         window.speechSynthesis.getVoices();
       };
     }
-
-Depois clica em **Commit changes**.
-
-**O que mudou:**
-
-- Removidas as marcações
-``` que estavam corrompendo o código
-- Adicionada uma lista de **vozes preferidas** (Microsoft Maria, Google português do Brasil, etc.) — o sistema agora procura primeiro as vozes mais naturais
-- A velocidade foi ajustada para **0.9** (um pouco mais lenta = mais clara)
-- O tom foi ajustado para **1.0** (neutro = mais natural)
-- O sistema agora filtra por `pt-BR` primeiro, depois por nome de voz
-
-A qualidade da voz vai depender do navegador/dispositivo onde o app rodar. No Chrome e Edge, geralmente há vozes neurais mais naturais disponíveis.

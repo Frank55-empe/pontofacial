@@ -1,19 +1,4 @@
-// SISTEMA DE AUDIO - VOZ HUMANIZADA COM RESPONSIVEVOICE
-
-declare global {
-  interface Window {
-    responsiveVoice?: {
-      speak: (text: string, voice?: string, options?: {
-        pitch?: number;
-        rate?: number;
-        volume?: number;
-      }) => void;
-      cancel: () => void;
-      isPlaying: () => boolean;
-      voiceSupport: () => boolean;
-    };
-  }
-}
+// SISTEMA DE AUDIO - VOZ HUMANIZADA (Amazon Polly via StreamElements)
 
 interface OpcoesAudio {
   habilitado: boolean;
@@ -24,12 +9,13 @@ interface OpcoesAudio {
 
 const OPCOES_PADRAO: OpcoesAudio = {
   habilitado: true,
-  velocidade: 0.9,
-  tom: 0.9,
+  velocidade: 1,
+  tom: 1,
   volume: 1,
 };
 
 let opcoesAtuais: OpcoesAudio = { ...OPCOES_PADRAO };
+let audioAtual: HTMLAudioElement | null = null;
 
 export function configurarAudio(novasOpcoes: Partial<OpcoesAudio>): void {
   opcoesAtuais = { ...opcoesAtuais, ...novasOpcoes };
@@ -53,33 +39,69 @@ function obterMensagemDespedida(): string {
   return 'Tenha um bom descanso';
 }
 
+async function falarStreamElements(texto: string): Promise<boolean> {
+  try {
+    if (audioAtual) {
+      audioAtual.pause();
+      audioAtual = null;
+    }
+
+    const voz = 'Ricardo';
+    const url = 'https://api.streamelements.com/kappa/v2/speech?voice=' + voz + '&text=' + encodeURIComponent(texto);
+
+    const audio = new Audio(url);
+    audio.volume = opcoesAtuais.volume;
+    audioAtual = audio;
+
+    await audio.play();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function falarWebSpeech(texto: string): void {
+  if (!('speechSynthesis' in window)) return;
+
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(texto);
+  utterance.lang = 'pt-BR';
+  utterance.rate = 0.9;
+  utterance.pitch = 0.85;
+  utterance.volume = opcoesAtuais.volume;
+
+  const vozes = window.speechSynthesis.getVoices();
+  const vozesPt = vozes.filter(
+    (v) => v.lang === 'pt-BR' || v.lang === 'pt_BR' || v.lang === 'pt-PT'
+  );
+
+  if (vozesPt.length > 0) {
+    const naoFemininas = vozesPt.filter(
+      (v) => !v.name.toLowerCase().includes('maria') &&
+            !v.name.toLowerCase().includes('francisca') &&
+            !v.name.toLowerCase().includes('luciana') &&
+            !v.name.toLowerCase().includes('vitoria') &&
+            !v.name.toLowerCase().includes('camila')
+    );
+    if (naoFemininas.length > 0) {
+      utterance.voice = naoFemininas[0];
+    } else {
+      utterance.voice = vozesPt[0];
+    }
+  }
+
+  window.speechSynthesis.speak(utterance);
+}
+
 function falar(texto: string): void {
   if (!opcoesAtuais.habilitado) return;
 
-  if (window.responsiveVoice && window.responsiveVoice.voiceSupport()) {
-    window.responsiveVoice.cancel();
-    window.responsiveVoice.speak(texto, 'Brazilian Portuguese Male', {
-      pitch: opcoesAtuais.tom,
-      rate: opcoesAtuais.velocidade,
-      volume: opcoesAtuais.volume,
-    });
-    return;
-  }
-
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(texto);
-    utterance.lang = 'pt-BR';
-    utterance.rate = opcoesAtuais.velocidade;
-    utterance.pitch = opcoesAtuais.tom;
-    utterance.volume = opcoesAtuais.volume;
-    const vozes = window.speechSynthesis.getVoices();
-    const vozPt = vozes.find(
-      (v) => v.lang === 'pt-BR' || v.lang === 'pt_BR' || v.lang === 'pt-PT'
-    );
-    if (vozPt) utterance.voice = vozPt;
-    window.speechSynthesis.speak(utterance);
-  }
+  falarStreamElements(texto).then((sucesso) => {
+    if (!sucesso) {
+      falarWebSpeech(texto);
+    }
+  });
 }
 
 export function falarConfirmacaoPonto(

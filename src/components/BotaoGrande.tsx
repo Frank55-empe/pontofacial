@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
     import { useNavigate } from 'react-router-dom';
-
     interface BotaoGrandeProps {
       para: string;
       icone: ReactNode;
@@ -8,7 +7,6 @@ import type { ReactNode } from 'react';
       descricao: string;
       variante?: 'primario' | 'secundario';
     }
-
     export function BotaoGrande({ para, icone, titulo, descricao, variante = 'primario' }: BotaoGrandeProps) {
       const navegar = useNavigate();
       const classes =

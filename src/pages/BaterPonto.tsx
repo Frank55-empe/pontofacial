@@ -1,4 +1,4 @@
- import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
     import { Link } from 'react-router-dom';
     import { Cabecalho } from '../components/Cabecalho';
     import { api } from '../services/api';
@@ -37,7 +37,7 @@
     };
 
     const TENTATIVAS_ATE_AVISAR_DESCONHECIDO = 3;
-    const COOLDOWN_MS = 5000;
+    const COOLDOWN_MS = 10000;
 
     export function BaterPonto() {
       const videoRef = useRef<HTMLVideoElement>(null);
@@ -47,6 +47,8 @@
       const tentativasSemMatchRef = useRef(0);
       const intervaloRef = useRef<ReturnType<typeof setInterval> | null>(null);
       const cooldownRef = useRef<number | null>(null);
+
+      const ultimoReconhecidoRef = useRef<{ id: string; timestamp: number } | null>(null);
 
       const [status, setStatus] = useState<Status>('carregando');
       const [mensagem, setMensagem] = useState('Inicializando camera...');
@@ -87,25 +89,37 @@
 
       const registrarReconhecimento = useCallback(
         async (id: string, nome: string, distancia: number) => {
+          const agora = Date.now();
+
+          if (
+            ultimoReconhecidoRef.current &&
+            ultimoReconhecidoRef.current.id === id &&
+            agora - ultimoReconhecidoRef.current.timestamp < COOLDOWN_MS
+          ) {
+            return;
+          }
+
+          ultimoReconhecidoRef.current = { id, timestamp: agora };
+
           emProcessamentoRef.current = true;
           setStatus('processando');
           setMensagem('Identificado: ' + nome + '. Registrando ponto...');
 
           try {
             const tipo = await proximaBatida(id);
-            const agora = new Date();
+            const dataHora = new Date();
 
             const resposta = await api.registrarPonto({
               funcionarioId: id,
               nomeFuncionario: nome,
               tipoBatida: tipo,
-              dataHora: agora.toISOString(),
+              dataHora: dataHora.toISOString(),
               metodoConfirmacao: 'facial',
               distanciaFacial: distancia.toFixed(4),
             });
 
             if (resposta.sucesso) {
-              const horario = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+              const horario = dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
               setResultado({ nome, tipo, horario });
               setStatus('sucesso');
               tocarBipe('sucesso');
@@ -149,6 +163,15 @@
         const correspondencia = encontrarMelhorCorrespondencia(rosto.descritor, funcionariosRef.current);
 
         if (correspondencia) {
+          const agora = Date.now();
+          if (
+            ultimoReconhecidoRef.current &&
+            ultimoReconhecidoRef.current.id === correspondencia.id &&
+            agora - ultimoReconhecidoRef.current.timestamp < COOLDOWN_MS
+          ) {
+            return;
+          }
+
           tentativasSemMatchRef.current = 0;
           await registrarReconhecimento(correspondencia.id, correspondencia.nome, correspondencia.distancia);
           return;

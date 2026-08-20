@@ -54,7 +54,7 @@
 
     function encontrarMelhorVoz(): SpeechSynthesisVoice | undefined {
       const vozes = window.speechSynthesis.getVoices();
-      if (!vozas || vozes.length === 0) return undefined;
+      if (!vozes || vozes.length === 0) return undefined;
 
       const vozesPt = vozes.filter(
         (v) => v.lang === 'pt-BR' || v.lang === 'pt_BR' || v.lang === 'pt-PT'

@@ -44,7 +44,7 @@
       'Microsoft Daniel',
       'Microsoft Antonio',
       'Microsoft Carlos',
-      'Google português do Brasil',
+      'Google portugues do Brasil',
       'Google Portuguese (Brazil)',
       'pt-BR-Standard-B',
       'pt-BR-Standard-D',
@@ -187,3 +187,23 @@ AudioContext ||
         window.speechSynthesis.getVoices();
       };
     }
+
+Clica em **Commit changes**.
+
+---
+
+## O que mudou
+
+**Cooldown de 10 segundos (BaterPonto.tsx):**
+- Adicionei `ultimoReconhecidoRef` que guarda o **ID da pessoa** e o **horário** do último reconhecimento
+- Antes de registrar, o sistema verifica se a **mesma pessoa** foi reconhecida nos **últimos 10 segundos**
+- Se foi, **ignora** e espera — não registra de novo
+- Se for uma **pessoa diferente**, registra normalmente
+- O `emProcessamentoRef` também bloqueia o ciclo durante o processamento
+
+**Voz masculina (audioFeedback.ts):**
+- Tom ajustado para **0.85** (mais grave = voz masculina)
+- Velocidade **0.88** (mais pausada = mais natural)
+- Lista de vozes masculinas preferidas (Microsoft Daniel, Google português, etc.)
+- Lista de vozes femininas para evitar
+- Removidas todas as marcações ``\` que estavam corrompendo o código

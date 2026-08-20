@@ -1,4 +1,4 @@
- import type { ReactNode } from 'react';
+import type { ReactNode } from 'react';
     import { useNavigate } from 'react-router-dom';
 
     interface BotaoGrandeProps {
@@ -27,25 +27,4 @@
           </div>
         </button>
       );
-    }
-
-Salva com Ctrl+S.
-
----
-
-## Arquivo 3: `tsconfig.node.json` (arquivo novo)
-
-Este arquivo **não existe** no seu projeto. Cria um arquivo novo na **raiz do projeto** (mesma pasta do `package.json`).
-
-No VS Code, clica com botão direito na pasta raiz > **New File** > digita `tsconfig.node.json` > cola **exatamente isto:**
-
-    {
-      "compilerOptions": {
-        "composite": true,
-        "skipLibCheck": true,
-        "module": "ESNext",
-        "moduleResolution": "bundler",
-        "allowSyntheticDefaultImports": true
-      },
-      "include": ["vite.config.ts"]
     }

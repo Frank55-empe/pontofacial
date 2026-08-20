@@ -1,169 +1,155 @@
- // ============================================================
-    // SISTEMA DE AUDIO - FEEDBACK POR VOZ (Web Speech API)
-    // ============================================================
+// ============================================================
+// SISTEMA DE AUDIO - VOZ MASCULINA HUMANIZADA (Web Speech API)
+// ============================================================
 
-    interface OpcoesAudio {
-      habilitado: boolean;
-      velocidade: number;
-      tom: number;
-      volume: number;
-    }
+interface OpcoesAudio {
+  habilitado: boolean;
+  velocidade: number;
+  tom: number;
+  volume: number;
+}
 
-    const OPCOES_PADRAO: OpcoesAudio = {
-      habilitado: true,
-      velocidade: 0.9,
-      tom: 1.0,
-      volume: 1,
-    };
+const OPCOES_PADRAO: OpcoesAudio = {
+  habilitado: true,
+  velocidade: 0.88,
+  tom: 0.85,
+  volume: 1,
+};
 
-    let opcoesAtuais: OpcoesAudio = { ...OPCOES_PADRAO };
+let opcoesAtuais: OpcoesAudio = { ...OPCOES_PADRAO };
 
-    export function configurarAudio(novasOpcoes: Partial<OpcoesAudio>): void {
-      opcoesAtuais = { ...opcoesAtuais, ...novasOpcoes };
-    }
+export function configurarAudio(novasOpcoes: Partial<OpcoesAudio>): void {
+  opcoesAtuais = { ...opcoesAtuais, ...novasOpcoes };
+}
 
-    export function getOpcoesAudio(): OpcoesAudio {
-      return { ...opcoesAtuais };
-    }
+export function getOpcoesAudio(): OpcoesAudio {
+  return { ...opcoesAtuais };
+}
 
-    function obterSaudacaoHorario(): string {
-      const hora = new Date().getHours();
-      if (hora < 12) return 'Bom dia';
-      if (hora < 18) return 'Boa tarde';
-      return 'Boa noite';
-    }
+function obterSaudacaoHorario(): string {
+  const hora = new Date().getHours();
+  if (hora < 12) return 'Bom dia';
+  if (hora < 18) return 'Boa tarde';
+  return 'Boa noite';
+}
 
-    function obterMensagemDespedida(): string {
-      const hora = new Date().getHours();
-      if (hora < 12) return 'Tenha um excelente dia';
-      if (hora < 18) return 'Tenha uma boa tarde';
-      return 'Tenha um bom descanso';
-    }
+function obterMensagemDespedida(): string {
+  const hora = new Date().getHours();
+  if (hora < 12) return 'Tenha um excelente dia';
+  if (hora < 18) return 'Tenha uma boa tarde';
+  return 'Tenha um bom descanso';
+}
 
-    // Lista de vozes preferidas (da mais natural para a menos natural)
-    const VOZES_PREFERIDAS = [
-      'Microsoft Maria',
-      'Microsoft Daniel',
-      'Google português do Brasil',
-      'Google Portuguese (Brazil)',
-      'pt-BR-Standard-A',
-      'Luciana',
-      'Felipe',
-      'Maria',
-    ];
+// Vozes masculinas preferidas (da mais natural para a menos natural)
+const VOZES_MASCULINAS = [
+  'Microsoft Daniel',
+  'Google português do Brasil',
+  'Google Portuguese (Brazil)',
+  'Microsoft Antonio',
+  'Microsoft Carlos',
+  'pt-BR-Standard-B',
+  'pt-BR-Standard-D',
+  'Felipe',
+  'Daniel',
+  'Antonio',
+  'Carlos',
+  'Ricardo',
+];
 
-    function encontrarMelhorVoz(): SpeechSynthesisVoice | undefined {
-      const vozes = window.speechSynthesis.getVoices();
-      if (!vozes || vozes.length === 0) return undefined;
+// Vozes femininas para evitar (quando possivel)
+const VOZES_FEMININAS = [
+  'Microsoft Maria',
+  'Microsoft Francisca',
+  'Google português do Brasil',
+  'pt-BR-Standard-A',
+  'pt-BR-Standard-C',
+  'Maria',
+  'Francisca',
+  'Luciana',
+  'Vitoria',
+  'Camila',
+];
 
-      const vozesPt = vozes.filter(
-        (v) => v.lang === 'pt-BR' || v.lang === 'pt_BR' || v.lang === 'pt-PT'
-      );
+function encontrarMelhorVoz(): SpeechSynthesisVoice | undefined {
+  const vozes = window.speechSynthesis.getVoices();
+  if (!vozes || vozes.length === 0) return undefined;
 
-      if (vozesPt.length === 0) return undefined;
+  const vozesPt = vozes.filter(
+  );
 
-      // Procura primeiro por nome (vozes mais naturais)
-      for (const nomePreferido of VOZES_PREFERIDAS) {
-        const encontrada = vozesPt.find((v) =>
-          v.name.toLowerCase().includes(nomePreferido.toLowerCase())
-        );
-        if (encontrada) return encontrada;
-      }
+  if (vozesPt.length === 0) return undefined;
 
-      // Se nao encontrou por nome, pega a primeira pt-BR
-      const localBrasil = vozesPt.find((v) => v.lang === 'pt-BR' || v.lang === 'pt_BR');
-      if (localBrasil) return localBrasil;
+  // 1. Procura por vozes masculinas por nome
+  for (const nomePreferido of VOZES_MASCULINAS) {
+    const encontrada = vozesPt.find((v) =>
+      v.name.toLowerCase().includes(nomePreferido.toLowerCase())
+    );
+    if (encontrada) return encontrada;
+  }
 
-      return vozesPt[0];
-    }
+  // 2. Se nao encontrou por nome, tenta evitar vozes femininas conhecidas
+  const naoFemininas = vozesPt.filter(
+    (v) => !VOZES_FEMININAS.some((nome) =>
+      v.name.toLowerCase().includes(nome.toLowerCase())
+    )
+  );
+  if (naoFemininas.length > 0) return naoFemininas[0];
 
-    export function falar(texto: string): void {
-      if (!opcoesAtuais.habilitado) return;
-      if (!('speechSynthesis' in window)) return;
+  // 3. Ultimo recurso: primeira voz pt-BR
+  const localBrasil = vozesPt.find((v) => v.lang === 'pt-BR' || v.lang === 'pt_BR');
+  if (localBrasil) return localBrasil;
 
-      window.speechSynthesis.cancel();
+  return vozesPt[0];
+}
 
-      const utterance = new SpeechSynthesisUtterance(texto);
-      utterance.lang = 'pt-BR';
-      utterance.rate = opcoesAtuais.velocidade;
-      utterance.pitch = opcoesAtuais.tom;
-      utterance.volume = opcoesAtuais.volume;
+export function falar(texto: string): void {
+  if (!opcoesAtuais.habilitado) return;
+  if (!('speechSynthesis' in window)) return;
 
-      const voz = encontrarMelhorVoz();
-      if (voz) {
-        utterance.voice = voz;
-      }
+  window.speechSynthesis.cancel();
 
-      window.speechSynthesis.speak(utterance);
-    }
+  const utterance = new SpeechSynthesisUtterance(texto);
+  utterance.lang = 'pt-BR';
+  utterance.rate = opcoesAtuais.velocidade;
+  utterance.pitch = opcoesAtuais.tom;
+  utterance.volume = opcoesAtuais.volume;
 
-    export function falarConfirmacaoPonto(
-      nome: string,
-      tipoBatida: 'entrada' | 'saida_almoco' | 'volta_almoco' | 'saida'
-    ): void {
-      const saudacao = obterSaudacaoHorario();
-      const primeiroNome = nome.split(' ')[0];
+  const voz = encontrarMelhorVoz();
+  if (voz) {
+    utterance.voice = voz;
+  }
 
-      let mensagem: string;
+  window.speechSynthesis.speak(utterance);
+}
 
-      switch (tipoBatida) {
-        case 'entrada':
-          mensagem = saudacao + ', ' + primeiroNome + '! Seu ponto de entrada foi registrado com sucesso.';
-          break;
-        case 'saida_almoco':
-          mensagem = saudacao + ', ' + primeiroNome + '! Saida para o almoco registrada. Bom apetite!';
-          break;
-        case 'volta_almoco':
-          mensagem = saudacao + ', ' + primeiroNome + '! Retorno do almoco registrado com sucesso.';
-          break;
-        case 'saida':
-          mensagem = saudacao + ', ' + primeiroNome + '! Sua saida foi registrada. ' + obterMensagemDespedida() + '!';
-          break;
-        default:
-          mensagem = saudacao + ', ' + primeiroNome + '! Seu ponto foi registrado com sucesso.';
-      }
+export function falarConfirmacaoPonto(
+  nome: string,
+): void {
+  const saudacao = obterSaudacaoHorario();
+  const primeiroNome = nome.split(' ')[0];
 
-      falar(mensagem);
-    }
+  let mensagem: string;
 
-    export function tocarBipe(tipo: 'sucesso' | 'erro' = 'erro'): void {
-      try {
-        const ctx = new (window.
+  switch (tipoBatida) {
+    case 'entrada':
+      mensagem = saudacao + ', ' + primeiroNome + '! Ponto de entrada registrado com sucesso.';
+      break;
+    case 'saida_almoco':
+      mensagem = saudacao + ', ' + primeiroNome + '! Saida para o almoco registrada. Bom apetite!';
+      break;
+    case 'volta_almoco':
+      mensagem = saudacao + ', ' + primeiroNome + '! Retorno do almoco registrado com sucesso.';
+      break;
+    case 'saida':
+      mensagem = saudacao + ', ' + primeiroNome + '! Saida registrada. ' + obterMensagemDespedida() + '!';
+      break;
+    default:
+      mensagem = saudacao + ', ' + primeiroNome + '! Ponto registrado com sucesso.';
+  }
 
-AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext)();
+  falar(mensagem);
+}
 
-        const oscillator = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        oscillator.connect(gain);
-        gain.connect(ctx.destination);
-
-        if (tipo === 'sucesso') {
-          oscillator.frequency.setValueAtTime(880, ctx.currentTime);
-          oscillator.frequency.setValueAtTime(1320, ctx.currentTime + 0.1);
-        } else {
-          oscillator.frequency.setValueAtTime(220, ctx.currentTime);
-          oscillator.frequency.setValueAtTime(180, ctx.currentTime + 0.15);
-        }
-
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-
-        oscillator.start(ctx.currentTime);
-        oscillator.stop(ctx.currentTime + 0.3);
-
-        oscillator.onended = () => ctx.close();
-      } catch {
-        // ignora se AudioContext falhar
-      }
-    }
-
-    export function inicializarAudio(): void {
-      if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.getVoices();
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.getVoices();
-      };
-    }
+export function tocarBipe(tipo: 'sucesso' | 'erro' = 'erro'): void {
+  try {
+    const ctx = new (window.

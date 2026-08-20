@@ -1,4 +1,4 @@
- // ============================================================
+// ============================================================
     // SISTEMA DE AUDIO - VOZ MASCULINA HUMANIZADA (Web Speech API)
     // ============================================================
 
@@ -72,7 +72,6 @@
       if (!vozes || vozes.length === 0) return undefined;
 
       const vozesPt = vozes.filter(
-        (v) => v.lang === 'pt-BR' || v.lang === 'pt_BR' || v.lang === 'pt-PT'
       );
 
       if (vozesPt.length === 0) return undefined;
@@ -119,7 +118,6 @@
 
     export function falarConfirmacaoPonto(
       nome: string,
-      tipoBatida: 'entrada' | 'saida_almoco' | 'volta_almoco' | 'saida'
     ): void {
       const saudacao = obterSaudacaoHorario();
       const primeiroNome = nome.split(' ')[0];
@@ -187,23 +185,3 @@ AudioContext ||
         window.speechSynthesis.getVoices();
       };
     }
-
-Clica em **Commit changes**.
-
----
-
-## O que mudou
-
-**Cooldown de 10 segundos (BaterPonto.tsx):**
-- Adicionei `ultimoReconhecidoRef` que guarda o **ID da pessoa** e o **horário** do último reconhecimento
-- Antes de registrar, o sistema verifica se a **mesma pessoa** foi reconhecida nos **últimos 10 segundos**
-- Se foi, **ignora** e espera — não registra de novo
-- Se for uma **pessoa diferente**, registra normalmente
-- O `emProcessamentoRef` também bloqueia o ciclo durante o processamento
-
-**Voz masculina (audioFeedback.ts):**
-- Tom ajustado para **0.85** (mais grave = voz masculina)
-- Velocidade **0.88** (mais pausada = mais natural)
-- Lista de vozes masculinas preferidas (Microsoft Daniel, Google português, etc.)
-- Lista de vozes femininas para evitar
-- Removidas todas as marcações ``\` que estavam corrompendo o código

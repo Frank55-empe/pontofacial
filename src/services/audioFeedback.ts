@@ -149,3 +149,36 @@ export function falarConfirmacaoPonto(
 export function tocarBipe(tipo: 'sucesso' | 'erro' = 'erro'): void {
   try {
     const ctx = new (window.
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (tipo === 'sucesso') {
+      oscillator.frequency.setValueAtTime(880, ctx.currentTime);
+      oscillator.frequency.setValueAtTime(1320, ctx.currentTime + 0.1);
+    } else {
+      oscillator.frequency.setValueAtTime(220, ctx.currentTime);
+      oscillator.frequency.setValueAtTime(180, ctx.currentTime + 0.15);
+    }
+
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.3);
+
+    oscillator.onended = () => ctx.close();
+  } catch {
+    // ignora se AudioContext falhar
+  }
+}
+
+export function inicializarAudio(): void {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
+}

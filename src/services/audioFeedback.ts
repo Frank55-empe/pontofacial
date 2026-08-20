@@ -1,4 +1,4 @@
-// SISTEMA DE AUDIO
+/ SISTEMA DE AUDIO
 interface OpcoesAudio {
 habilitado: boolean;
 velocidade: number;

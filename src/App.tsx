@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Home } from './pages/Home';
-import BaterPonto from './pages/BaterPonto';
+import { BaterPonto } from './pages/BaterPonto';
 import { RotaProtegida } from './components/RotaProtegida';
 
 const Login = lazy(() => import('./pages/admin/Login').then(m => ({ default: m.Login })));

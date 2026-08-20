@@ -1,4 +1,4 @@
-// SISTEMA DE AUDIO - VOZ MASCULINA HUMANIZADA
+/ SISTEMA DE AUDIO - VOZ MASCULINA HUMANIZADA
 
 interface OpcoesAudio {
   habilitado: boolean;
@@ -69,7 +69,6 @@ function encontrarMelhorVoz(): SpeechSynthesisVoice | undefined {
   const vozes = window.speechSynthesis.getVoices();
   if (!vozes || vozes.length === 0) return undefined;
   const vozesPt = vozes.filter(
-    (v) => v.lang === 'pt-BR' || v.lang === 'pt_BR' || v.lang === 'pt-PT'
   );
   if (vozesPt.length === 0) return undefined;
   for (const nomePreferido of VOZES_MASCULINAS) {
@@ -107,7 +106,6 @@ export function falar(texto: string): void {
 
 export function falarConfirmacaoPonto(
   nome: string,
-  tipoBatida: 'entrada' | 'saida_almoco' | 'volta_almoco' | 'saida'
 ): void {
   const saudacao = obterSaudacaoHorario();
   const primeiroNome = nome.split(' ')[0];

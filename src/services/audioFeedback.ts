@@ -40,13 +40,12 @@ function obterMensagemDespedida(): string {
   return 'Tenha um bom descanso';
 }
 
-// Vozes masculinas preferidas (da mais natural para a menos natural)
 const VOZES_MASCULINAS = [
   'Microsoft Daniel',
-  'Google português do Brasil',
-  'Google Portuguese (Brazil)',
   'Microsoft Antonio',
   'Microsoft Carlos',
+  'Google português do Brasil',
+  'Google Portuguese (Brazil)',
   'pt-BR-Standard-B',
   'pt-BR-Standard-D',
   'Felipe',
@@ -56,11 +55,9 @@ const VOZES_MASCULINAS = [
   'Ricardo',
 ];
 
-// Vozes femininas para evitar (quando possivel)
 const VOZES_FEMININAS = [
   'Microsoft Maria',
   'Microsoft Francisca',
-  'Google português do Brasil',
   'pt-BR-Standard-A',
   'pt-BR-Standard-C',
   'Maria',
@@ -75,11 +72,11 @@ function encontrarMelhorVoz(): SpeechSynthesisVoice | undefined {
   if (!vozes || vozes.length === 0) return undefined;
 
   const vozesPt = vozes.filter(
+    (v) => v.lang === 'pt-BR' || v.lang === 'pt_BR' || v.lang === 'pt-PT'
   );
 
   if (vozesPt.length === 0) return undefined;
 
-  // 1. Procura por vozes masculinas por nome
   for (const nomePreferido of VOZES_MASCULINAS) {
     const encontrada = vozesPt.find((v) =>
       v.name.toLowerCase().includes(nomePreferido.toLowerCase())
@@ -87,7 +84,6 @@ function encontrarMelhorVoz(): SpeechSynthesisVoice | undefined {
     if (encontrada) return encontrada;
   }
 
-  // 2. Se nao encontrou por nome, tenta evitar vozes femininas conhecidas
   const naoFemininas = vozesPt.filter(
     (v) => !VOZES_FEMININAS.some((nome) =>
       v.name.toLowerCase().includes(nome.toLowerCase())
@@ -95,7 +91,6 @@ function encontrarMelhorVoz(): SpeechSynthesisVoice | undefined {
   );
   if (naoFemininas.length > 0) return naoFemininas[0];
 
-  // 3. Ultimo recurso: primeira voz pt-BR
   const localBrasil = vozesPt.find((v) => v.lang === 'pt-BR' || v.lang === 'pt_BR');
   if (localBrasil) return localBrasil;
 
@@ -124,6 +119,7 @@ export function falar(texto: string): void {
 
 export function falarConfirmacaoPonto(
   nome: string,
+  tipoBatida: 'entrada' | 'saida_almoco' | 'volta_almoco' | 'saida'
 ): void {
   const saudacao = obterSaudacaoHorario();
   const primeiroNome = nome.split(' ')[0];

@@ -1,4 +1,21 @@
-// SISTEMA DE AUDIO - VOZ HUMANIZADA (Amazon Polly via StreamElements)
+// SISTEMA DE AUDIO - VOZ HUMANIZADA (Puter.js + Amazon Polly + Gemini TTS)
+
+declare global {
+  interface Window {
+    puter?: {
+      ai: {
+        txt2speech: (text: string, options?: {
+          voice?: string;
+          engine?: string;
+          language?: string;
+          provider?: string;
+          model?: string;
+          instructions?: string;
+        }) => Promise<HTMLAudioElement>;
+      };
+    };
+  }
+}
 
 interface OpcoesAudio {
   habilitado: boolean;
@@ -39,21 +56,53 @@ function obterMensagemDespedida(): string {
   return 'Tenha um bom descanso';
 }
 
-async function falarStreamElements(texto: string): Promise<boolean> {
+async function falarPuter(texto: string): Promise<boolean> {
   try {
+    if (!window.puter || !window.puter.ai || !window.puter.ai.txt2speech) {
+      return false;
+    }
+
     if (audioAtual) {
       audioAtual.pause();
       audioAtual = null;
     }
 
-    const voz = 'Ricardo';
-    const url = 'https://api.streamelements.com/kappa/v2/speech?voice=' + voz + '&text=' + encodeURIComponent(texto);
+    const audio = await window.puter.ai.txt2speech(texto, {
+      voice: 'Ricardo',
+      engine: 'neural',
+      language: 'pt-BR',
+    });
 
-    const audio = new Audio(url);
     audio.volume = opcoesAtuais.volume;
     audioAtual = audio;
+    audio.play();
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-    await audio.play();
+async function falarGemini(texto: string): Promise<boolean> {
+  try {
+    if (!window.puter || !window.puter.ai || !window.puter.ai.txt2speech) {
+      return false;
+    }
+
+    if (audioAtual) {
+      audioAtual.pause();
+      audioAtual = null;
+    }
+
+    const audio = await window.puter.ai.txt2speech(texto, {
+      provider: 'gemini',
+      model: 'gemini-2.5-flash-preview-tts',
+      voice: 'Puck',
+      instructions: 'Speak in Portuguese with a natural, friendly, masculine tone.',
+    });
+
+    audio.volume = opcoesAtuais.volume;
+    audioAtual = audio;
+    audio.play();
     return true;
   } catch {
     return false;
@@ -97,9 +146,13 @@ function falarWebSpeech(texto: string): void {
 function falar(texto: string): void {
   if (!opcoesAtuais.habilitado) return;
 
-  falarStreamElements(texto).then((sucesso) => {
+  falarPuter(texto).then((sucesso) => {
     if (!sucesso) {
-      falarWebSpeech(texto);
+      falarGemini(texto).then((sucesso2) => {
+        if (!sucesso2) {
+          falarWebSpeech(texto);
+        }
+      });
     }
   });
 }

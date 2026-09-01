@@ -1,3 +1,4 @@
+import { EspelhoPonto } from './pages/EspelhoPonto';
 import { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Home } from './pages/Home';
